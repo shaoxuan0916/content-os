@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
+import { getAuthenticatedUser } from "@/server/auth/session";
 
-export default function HomePage() {
-  redirect("/dashboard");
+export default async function HomePage() {
+  const user = await getAuthenticatedUser();
+  redirect(user ? "/dashboard" : "/login");
 }

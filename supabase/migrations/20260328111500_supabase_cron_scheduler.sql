@@ -85,7 +85,7 @@ begin
 
   perform private.schedule_content_os_job(
     'content-os-ingest',
-    '30 5 * * *',
+    '30 21 * * *',
     app_url,
     internal_api_secret,
     '/api/cron/ingest',
@@ -94,7 +94,7 @@ begin
 
   perform private.schedule_content_os_job(
     'content-os-process-topics',
-    '40 5 * * *',
+    '40 21 * * *',
     app_url,
     internal_api_secret,
     '/api/internal/process-topics',
@@ -103,7 +103,7 @@ begin
 
   perform private.schedule_content_os_job(
     'content-os-enrich-topics',
-    '50 5 * * *',
+    '50 21 * * *',
     app_url,
     internal_api_secret,
     '/api/internal/enrich-topics',
