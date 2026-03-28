@@ -8,16 +8,18 @@ export interface AuthenticatedUser {
 
 export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> {
   const supabase = await getSupabaseServerClient();
-  const { data: claimsData, error } = await supabase.auth.getClaims();
-  const claims = claimsData?.claims;
+  const {
+    data: { user },
+    error
+  } = await supabase.auth.getUser();
 
-  if (error || !claims || typeof claims.sub !== "string") {
+  if (error || !user) {
     return null;
   }
 
   return {
-    id: claims.sub,
-    email: typeof claims.email === "string" ? claims.email : null
+    id: user.id,
+    email: user.email ?? null
   };
 }
 

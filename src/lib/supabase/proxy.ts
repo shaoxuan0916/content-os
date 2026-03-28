@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getSupabasePublicConfig } from "@/lib/supabase/shared";
 
-const protectedPaths = ["/dashboard", "/prompts", "/packages", "/runs", "/topics"];
+const protectedPaths = ["/dashboard", "/runs"];
 const authPaths = ["/login"];
 
 function isProtectedPath(pathname: string) {
@@ -14,7 +14,9 @@ function isAuthPath(pathname: string) {
 }
 
 export async function updateSession(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  let response = NextResponse.next({
+    request
+  });
 
   const { url, publishableKey } = getSupabasePublicConfig();
 
@@ -28,7 +30,9 @@ export async function updateSession(request: NextRequest) {
           request.cookies.set(cookie.name, cookie.value);
         }
 
-        response = NextResponse.next({ request });
+        response = NextResponse.next({
+          request
+        });
 
         for (const cookie of cookiesToSet) {
           response.cookies.set(cookie.name, cookie.value, cookie.options);
@@ -37,9 +41,12 @@ export async function updateSession(request: NextRequest) {
     }
   });
 
-  const { data: claimsData } = await supabase.auth.getClaims();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
   const pathname = request.nextUrl.pathname;
-  const isAuthenticated = Boolean(claimsData?.claims?.sub);
+  const isAuthenticated = Boolean(user);
 
   if (!isAuthenticated && isProtectedPath(pathname)) {
     const loginUrl = request.nextUrl.clone();

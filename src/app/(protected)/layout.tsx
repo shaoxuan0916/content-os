@@ -5,8 +5,6 @@ import { requireAuthenticatedUser } from "@/server/auth/session";
 
 const navigation = [
   { href: "/dashboard", label: "Dashboard" },
-  { href: "/prompts", label: "Prompts" },
-  { href: "/packages", label: "Packages" },
   { href: "/runs", label: "Runs" }
 ] as const;
 

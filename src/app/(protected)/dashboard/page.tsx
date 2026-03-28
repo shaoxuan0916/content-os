@@ -1,7 +1,7 @@
-import { DashboardTopicList } from "@/components/content-os/dashboard-topic-list";
+import { DashboardArticleList } from "@/components/content-os/dashboard-article-list";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { FeedbackAction } from "@/server/db/types";
-import { listTopicCategories, listTopics } from "@/server/topics/queries";
+import { listArticles, listArticleSources } from "@/server/articles/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -15,16 +15,16 @@ const feedbackOptions: { value: FeedbackAction | "unreviewed"; label: string }[]
 export default async function DashboardPage({
   searchParams
 }: {
-  searchParams: Promise<{ category?: string; feedback?: FeedbackAction | "unreviewed" }>;
+  searchParams: Promise<{ source?: string; feedback?: FeedbackAction | "unreviewed" }>;
 }) {
   const params = await searchParams;
   const activeFeedback = params.feedback ?? "unreviewed";
-  const [topics, categories] = await Promise.all([
-    listTopics({
-      category: params.category,
+  const [articles, sources] = await Promise.all([
+    listArticles({
+      sourceId: params.source,
       feedback: activeFeedback
     }),
-    listTopicCategories()
+    listArticleSources()
   ]);
 
   return (
@@ -32,23 +32,27 @@ export default async function DashboardPage({
       <section className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="font-mono text-xs uppercase tracking-[0.22em] text-muted-foreground">Ranked Topics</p>
+            <p className="font-mono text-xs uppercase tracking-[0.22em] text-muted-foreground">Latest Articles</p>
             <h2 className="text-2xl font-semibold">Dashboard</h2>
           </div>
-          <p className="text-sm text-muted-foreground">{topics.length} topics</p>
+          <p className="text-sm text-muted-foreground">{articles.length} visible articles</p>
         </div>
-        <form className="grid gap-3 rounded-[1.5rem] border border-border/70 bg-card/70 p-4 md:grid-cols-[1fr_1fr_auto]" action="/dashboard">
+
+        <form
+          className="grid gap-3 rounded-[1.5rem] border border-border/70 bg-card/70 p-4 md:grid-cols-[1fr_1fr_auto]"
+          action="/dashboard"
+        >
           <label className="space-y-2 text-sm">
-            <span className="font-medium">Category</span>
+            <span className="font-medium">Source</span>
             <select
-              name="category"
-              defaultValue={params.category ?? ""}
+              name="source"
+              defaultValue={params.source ?? ""}
               className="h-10 w-full rounded-2xl border border-border bg-card px-4 text-sm"
             >
-              <option value="">All categories</option>
-              {categories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
+              <option value="">All sources</option>
+              {sources.map((source) => (
+                <option key={source.id} value={source.id}>
+                  {source.name}
                 </option>
               ))}
             </select>
@@ -72,20 +76,21 @@ export default async function DashboardPage({
               Apply
             </button>
             <a
-              href="/dashboard"
+              href="/dashboard?feedback=unreviewed"
               className="inline-flex h-10 items-center justify-center rounded-full border border-border px-4 text-sm font-semibold"
             >
               Reset
             </a>
           </div>
         </form>
-        {topics.length === 0 ? (
+
+        {articles.length === 0 ? (
           <EmptyState
-            title="No topics yet"
-            description="Run ingestion, clustering, and enrichment to populate the dashboard, or widen the current filters."
+            title="No articles yet"
+            description="Run ingestion to pull the latest posts into the dashboard, or widen the current filters."
           />
         ) : (
-          <DashboardTopicList topics={topics} />
+          <DashboardArticleList articles={articles} />
         )}
       </section>
     </div>

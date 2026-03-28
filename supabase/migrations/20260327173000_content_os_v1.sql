@@ -212,7 +212,7 @@ values
   ('Anthropic blog', 'https://www.anthropic.com/news', 'official', 'A'),
   ('Google DeepMind', 'https://deepmind.google/blog/', 'official', 'A'),
   ('Meta AI', 'https://ai.meta.com/blog/', 'official', 'A'),
-  ('TechCrunch AI', 'https://techcrunch.com/tag/ai/feed/', 'media', 'A'),
+  ('TechCrunch AI', 'https://techcrunch.com/category/artificial-intelligence/', 'media', 'A'),
   ('The Verge AI', 'https://www.theverge.com/rss/ai-artificial-intelligence/index.xml', 'media', 'A'),
   ('Reuters Technology', 'https://www.reuters.com/technology/', 'media', 'A'),
   ('WIRED AI', 'https://www.wired.com/category/artificial-intelligence/', 'media', 'A'),

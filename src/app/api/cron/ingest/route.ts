@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { runIngestion } from "@/server/ingestion/service";
-import { assertInternalRequest } from "@/server/utils/security";
+import { assertCronRequest } from "@/server/utils/security";
 
-export async function POST() {
+async function handleIngestion() {
   try {
-    await assertInternalRequest();
+    await assertCronRequest();
     const result = await runIngestion();
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
@@ -13,4 +13,12 @@ export async function POST() {
       { status: 500 }
     );
   }
+}
+
+export async function GET() {
+  return handleIngestion();
+}
+
+export async function POST() {
+  return handleIngestion();
 }
