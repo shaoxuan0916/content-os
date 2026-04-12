@@ -74,16 +74,3 @@ bun run typecheck
 
 That is 5:00 AM Malaysia time.
 
-## Data Model
-
-The fresh baseline migration lives at:
-
-[20260412120000_fresh_public_feed_schema.sql](/Users/shaoxuan/Documents/nolan-innovation/content-os/supabase/migrations/20260412120000_fresh_public_feed_schema.sql)
-
-Main tables:
-
-- `sources`
-- `articles`
-- `ingestion_runs`
-
-The migration is destructive by design. It drops and recreates the app-owned `public` schema objects so a fresh database starts with only the tables, types, indexes, triggers, and seed sources this app currently needs.
