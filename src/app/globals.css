@@ -3,33 +3,33 @@
 @tailwind utilities;
 
 :root {
-  --background: 48 43% 97%;
-  --foreground: 221 39% 11%;
+  --background: 0 0% 99%;
+  --foreground: 220 18% 10%;
   --card: 0 0% 100%;
-  --card-foreground: 221 39% 11%;
-  --border: 216 24% 86%;
-  --muted: 210 40% 96%;
-  --muted-foreground: 215 16% 40%;
-  --primary: 193 85% 24%;
-  --primary-foreground: 45 100% 98%;
-  --accent: 34 100% 94%;
-  --accent-foreground: 24 36% 18%;
+  --card-foreground: 220 18% 10%;
+  --border: 220 13% 88%;
+  --muted: 220 14% 95%;
+  --muted-foreground: 220 9% 40%;
+  --primary: 164 78% 31%;
+  --primary-foreground: 0 0% 100%;
+  --accent: 164 54% 92%;
+  --accent-foreground: 164 65% 15%;
   --success: 158 61% 35%;
   --danger: 0 72% 48%;
 }
 
 .dark {
-  --background: 219 36% 9%;
-  --foreground: 42 33% 95%;
-  --card: 220 28% 12%;
-  --card-foreground: 42 33% 95%;
-  --border: 218 19% 22%;
-  --muted: 220 24% 16%;
-  --muted-foreground: 214 15% 70%;
-  --primary: 37 93% 64%;
-  --primary-foreground: 213 37% 10%;
-  --accent: 221 21% 18%;
-  --accent-foreground: 42 33% 95%;
+  --background: 220 9% 7%;
+  --foreground: 0 0% 96%;
+  --card: 220 8% 11%;
+  --card-foreground: 0 0% 96%;
+  --border: 220 7% 22%;
+  --muted: 220 7% 15%;
+  --muted-foreground: 220 6% 68%;
+  --primary: 164 70% 48%;
+  --primary-foreground: 220 18% 8%;
+  --accent: 164 28% 16%;
+  --accent-foreground: 0 0% 96%;
   --success: 158 57% 48%;
   --danger: 0 84% 70%;
 }
@@ -49,10 +49,7 @@ body {
     "Segoe UI",
     "Helvetica Neue",
     sans-serif;
-  background:
-    radial-gradient(circle at top left, rgba(245, 158, 11, 0.16), transparent 24rem),
-    radial-gradient(circle at top right, rgba(14, 116, 144, 0.16), transparent 24rem),
-    hsl(var(--background));
+  background: hsl(var(--background));
   color: hsl(var(--foreground));
 }
 
@@ -62,16 +59,6 @@ body {
     "SFMono-Regular",
     "Menlo",
     monospace;
-}
-
-body::before {
-  position: fixed;
-  inset: 0;
-  background-image: theme("backgroundImage.grid-fade");
-  background-size: 42px 42px;
-  content: "";
-  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.55), transparent 85%);
-  pointer-events: none;
 }
 
 a {

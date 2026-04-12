@@ -1,26 +1,23 @@
 import { getSupabaseAdmin } from "@/server/db/client";
-import type {
-  ArticleListItem,
-  ArticleRow,
-  DashboardSnapshot,
-  FeedbackAction,
-  IngestionRunRow,
-  SourceRow
-} from "@/server/db/types";
+import type { ArticleRow, PublicArticleListItem, SourceRow } from "@/server/db/types";
 
-function isMissingReviewActionColumn(error: { message: string; code?: string } | null) {
-  if (!error) {
-    return false;
-  }
+const publicArticleLookbackDays = 30;
 
-  return error.code === "42703" || /review_action/i.test(error.message);
+function isSourceSlug(value: string) {
+  return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
+}
+
+function getPublicArticleCreatedAfter() {
+  const cutoff = new Date();
+  cutoff.setUTCDate(cutoff.getUTCDate() - publicArticleLookbackDays);
+  return cutoff.toISOString();
 }
 
 export async function listArticleSources() {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("sources")
-    .select("id, name, source_type, tier")
+    .select("id, name, slug, source_type, tier")
     .eq("is_active", true)
     .order("name");
 
@@ -28,162 +25,88 @@ export async function listArticleSources() {
     throw new Error(error.message);
   }
 
-  return (data ?? []) as Pick<SourceRow, "id" | "name" | "source_type" | "tier">[];
+  return (data ?? []) as Pick<SourceRow, "id" | "name" | "slug" | "source_type" | "tier">[];
 }
 
-export async function listArticles(filters?: {
-  sourceId?: string;
-  feedback?: FeedbackAction | "unreviewed" | "all";
-}) {
+export async function listPublicArticles(filters?: {
+  sourceSlug?: string;
+  offset?: number;
+  limit?: number;
+}): Promise<{ articles: PublicArticleListItem[]; hasMore: boolean }> {
+  if (filters?.sourceSlug && !isSourceSlug(filters.sourceSlug)) {
+    return { articles: [], hasMore: false };
+  }
+
   const supabase = getSupabaseAdmin();
+  const offset = Math.max(0, filters?.offset ?? 0);
+  const limit = Math.min(50, Math.max(1, filters?.limit ?? 24));
 
-  let query = supabase.from("articles").select("*").order("published_at", { ascending: false }).limit(200);
+  let query = supabase
+    .from("articles")
+    .select("id, source_id, title, canonical_url, excerpt, thumbnail_url, published_at")
+    .gte("created_at", getPublicArticleCreatedAfter())
+    .order("published_at", { ascending: false })
+    .range(offset, offset + limit);
 
-  if (filters?.sourceId) {
-    query = query.eq("source_id", filters.sourceId);
-  }
+  if (filters?.sourceSlug) {
+    const { data: source, error: sourceLookupError } = await supabase
+      .from("sources")
+      .select("id")
+      .eq("slug", filters.sourceSlug)
+      .eq("is_active", true)
+      .maybeSingle();
 
-  if (filters?.feedback === "unreviewed") {
-    query = query.is("review_action", null);
-  } else if (filters?.feedback && filters.feedback !== "all") {
-    query = query.eq("review_action", filters.feedback);
-  }
-
-  let { data: articles, error } = await query;
-
-  if (isMissingReviewActionColumn(error)) {
-    if (filters?.feedback && filters.feedback !== "all" && filters.feedback !== "unreviewed") {
-      return [];
+    if (sourceLookupError) {
+      throw new Error(sourceLookupError.message);
     }
 
-    const fallback = await supabase.from("articles").select("*").order("published_at", { ascending: false }).limit(200);
-    articles = fallback.data;
-    error = fallback.error;
+    if (!source) {
+      return { articles: [], hasMore: false };
+    }
+
+    query = query.eq("source_id", source.id);
   }
+
+  const { data: articles, error } = await query;
 
   if (error) {
     throw new Error(error.message);
   }
 
-  const articleRows = (articles ?? []) as ArticleRow[];
+  const articleRows = (articles ?? []).slice(0, limit) as Array<
+    Pick<ArticleRow, "id" | "source_id" | "title" | "canonical_url" | "excerpt" | "thumbnail_url" | "published_at">
+  >;
   const sourceIds = [...new Set(articleRows.map((article) => article.source_id))];
   const { data: sources, error: sourceError } = sourceIds.length
-    ? await supabase.from("sources").select("id, name, source_type, tier").in("id", sourceIds)
-    : await supabase.from("sources").select("id, name, source_type, tier").limit(0);
+    ? await supabase.from("sources").select("id, name, slug, source_type, tier").in("id", sourceIds).eq("is_active", true)
+    : await supabase.from("sources").select("id, name, slug, source_type, tier").limit(0);
 
   if (sourceError) {
     throw new Error(sourceError.message);
   }
 
   const sourceMap = new Map(
-    ((sources ?? []) as Pick<SourceRow, "id" | "name" | "source_type" | "tier">[]).map((source) => [source.id, source])
+    ((sources ?? []) as Pick<SourceRow, "id" | "name" | "slug" | "source_type" | "tier">[]).map((source) => [
+      source.id,
+      source
+    ])
   );
 
-  return articleRows
-    .map((article) => {
-      const source = sourceMap.get(article.source_id);
-
-      if (!source) {
-        return null;
-      }
-
-      return {
-        ...article,
-        source
-      } satisfies ArticleListItem;
-    })
-    .filter(Boolean) as ArticleListItem[];
-}
-
-export async function listRuns(): Promise<IngestionRunRow[]> {
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("ingestion_runs")
-    .select("*")
-    .order("started_at", { ascending: false })
-    .limit(30);
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return (data ?? []) as IngestionRunRow[];
-}
-
-export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
-  const supabase = getSupabaseAdmin();
-  const { count: articleCount, error: articleError } = await supabase
-    .from("articles")
-    .select("id", { count: "exact", head: true });
-
-  if (articleError) {
-    throw new Error(articleError.message);
-  }
-
-  const [
-    { count: favoriteCount, error: favoriteError },
-    { count: usedCount, error: usedError },
-    { count: ignoredCount, error: ignoredError }
-  ] = await Promise.all([
-    supabase.from("articles").select("id", { count: "exact", head: true }).eq("review_action", "favorite"),
-    supabase.from("articles").select("id", { count: "exact", head: true }).eq("review_action", "used"),
-    supabase.from("articles").select("id", { count: "exact", head: true }).eq("review_action", "ignored")
-  ]);
-
-  if (isMissingReviewActionColumn(favoriteError) || isMissingReviewActionColumn(usedError) || isMissingReviewActionColumn(ignoredError)) {
-    return {
-      articleCount: articleCount ?? 0,
-      favoriteCount: 0,
-      usedCount: 0,
-      ignoredCount: 0
-    };
-  }
-
-  for (const error of [favoriteError, usedError, ignoredError]) {
-    if (error) {
-      throw new Error(error.message);
-    }
-  }
-
   return {
-    articleCount: articleCount ?? 0,
-    favoriteCount: favoriteCount ?? 0,
-    usedCount: usedCount ?? 0,
-    ignoredCount: ignoredCount ?? 0
+    articles: articleRows
+      .map((article) => {
+        const source = sourceMap.get(article.source_id);
+
+        if (!source) {
+          return null;
+        }
+
+        return {
+          ...article,
+          source
+        } satisfies PublicArticleListItem;
+      })
+      .filter(Boolean) as PublicArticleListItem[],
+    hasMore: (articles ?? []).length > limit
   };
-}
-
-export async function setArticleReview(articleId: string, action: FeedbackAction) {
-  const supabase = getSupabaseAdmin();
-  const { error } = await supabase.from("articles").update({ review_action: action }).eq("id", articleId);
-
-  if (error) {
-    if (isMissingReviewActionColumn(error)) {
-      throw new Error("Database migration is required before article review actions can be saved.");
-    }
-
-    throw new Error(error.message);
-  }
-
-  return { articleId, action };
-}
-
-export async function bulkSetArticleReview(articleIds: string[], action: FeedbackAction) {
-  if (articleIds.length === 0) {
-    return { updated: 0 };
-  }
-
-  const supabase = getSupabaseAdmin();
-  const dedupedIds = [...new Set(articleIds)];
-  const { error } = await supabase.from("articles").update({ review_action: action }).in("id", dedupedIds);
-
-  if (error) {
-    if (isMissingReviewActionColumn(error)) {
-      throw new Error("Database migration is required before article review actions can be saved.");
-    }
-
-    throw new Error(error.message);
-  }
-
-  return { updated: dedupedIds.length };
 }

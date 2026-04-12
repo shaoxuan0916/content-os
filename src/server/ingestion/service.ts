@@ -8,7 +8,7 @@ import { excerptText, normalizeUrl, stripHtml } from "@/server/utils/text";
 
 const parser = new Parser();
 const REQUEST_HEADERS = {
-  "user-agent": "Content OS Bot/1.0"
+  "user-agent": "Tech Pulse Bot/1.0"
 };
 const ARTICLE_BODY_SELECTORS = [
   "[itemprop='articleBody']",

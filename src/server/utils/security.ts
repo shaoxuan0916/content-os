@@ -1,24 +1,25 @@
 import { headers } from "next/headers";
-import { getEnv } from "@/server/config";
+
+export class UnauthorizedCronRequestError extends Error {
+  constructor(message = "Unauthorized cron request.") {
+    super(message);
+    this.name = "UnauthorizedCronRequestError";
+  }
+}
 
 export async function assertCronRequest() {
-  const env = getEnv();
   const requestHeaders = await headers();
   const authHeader = requestHeaders.get("authorization");
-  const cronHeader = requestHeaders.get("x-vercel-cron");
   const secret = authHeader?.replace(/^Bearer\s+/i, "");
+  const expectedSecret = process.env.CRON_SECRET;
 
-  if (env.CRON_SECRET) {
-    if (secret !== env.CRON_SECRET) {
-      throw new Error("Unauthorized cron request.");
-    }
+  if (!expectedSecret) {
+    throw new UnauthorizedCronRequestError("CRON_SECRET is not configured.");
+  }
 
+  if (secret === expectedSecret) {
     return;
   }
 
-  if (cronHeader === "1") {
-    return;
-  }
-
-  throw new Error("Unauthorized cron request.");
+  throw new UnauthorizedCronRequestError();
 }

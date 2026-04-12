@@ -1,5 +1,5 @@
 {
-  "name": "content-os-v1",
+  "name": "tech-pulse",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,9 +10,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.3",
-    "@supabase/ssr": "^0.9.0",
     "@supabase/supabase-js": "^2.57.4",
+    "@tanstack/react-query": "^5.99.0",
     "cheerio": "^1.1.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

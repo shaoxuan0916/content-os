@@ -1,27 +1,28 @@
-# Content OS
+# Tech Pulse
 
-Internal article ingestion and review workspace built with Next.js, Bun, and Supabase.
+Public tech-news feed built with Next.js, Bun, and Supabase.
 
 ## What It Does
 
-- Ingests AI and technology articles from a curated source list.
+- Ingests AI and technology articles from active sources every day.
 - Stores articles and ingestion run history in Supabase.
-- Enriches weak feed entries by fetching the article page directly.
-- Lets authenticated users review articles and mark them as `favorite`, `used`, or `ignored`.
-- Runs on a daily cron schedule and can also be triggered manually from the UI.
+- Lets anyone visit the homepage to browse, filter by source, and open original articles.
+- Keeps ingestion protected behind a cron-only API endpoint.
 
 ## Current Product Scope
 
-- `Dashboard`: article review surface with source/status filters, multi-select bulk actions, and run-friendly browsing.
-- `Runs`: manual ingestion trigger plus recent ingestion history.
-- No topic clustering, enrichment pipeline, prompt packages, or AI-generated processing remain in the app.
+- `/`: public article feed with source filtering and infinite scroll.
+- `/api/articles`: read-only public article API used by the homepage.
+- `/api/cron/ingest`: protected ingestion endpoint called by Vercel Cron.
+- No admin screens, login, manual ingestion UI, or article review/status workflow.
 
 ## Stack
 
 - Next.js 15 App Router
 - React 19
 - TypeScript
-- Supabase Auth + Postgres
+- Supabase Postgres
+- Vercel Cron
 - Bun for package management and scripts
 - Tailwind CSS
 
@@ -29,37 +30,18 @@ Internal article ingestion and review workspace built with Next.js, Bun, and Sup
 
 See [.env.example](/Users/shaoxuan/Documents/nolan-innovation/content-os/.env.example).
 
-- `NEXT_PUBLIC_APP_URL`: local or deployed app URL
 - `SUPABASE_URL`: Supabase project URL
-- `NEXT_PUBLIC_SUPABASE_URL`: public Supabase URL for the browser client
-- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`: browser publishable key
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: browser anon key
-- `SUPABASE_SERVICE_ROLE_KEY`: server-side admin key used for ingestion and writes
-- `CRON_SECRET`: shared secret for the protected cron ingestion endpoint
+- `SUPABASE_SERVICE_ROLE_KEY`: server-side key used by API routes and ingestion
+- `CRON_SECRET`: shared bearer secret for `/api/cron/ingest`
 
 ## Local Development
 
-1. Install dependencies:
-
 ```bash
 bun install
-```
-
-2. Create your local env file:
-
-```bash
-cp .env.example .env.local
-```
-
-3. Make sure your Supabase schema is up to date.
-
-4. Start the app:
-
-```bash
 bun run dev
 ```
 
-5. Open `http://localhost:3000`.
+Open `http://localhost:3000`.
 
 ## Useful Commands
 
@@ -74,25 +56,29 @@ bun run typecheck
 
 ## Ingestion Flow
 
-1. Read source definitions from [src/server/ingestion/defaults.ts](/Users/shaoxuan/Documents/nolan-innovation/content-os/src/server/ingestion/defaults.ts).
+1. Read active sources from `sources`.
 2. Fetch RSS or fallback page content.
-3. Normalize article URL, text, and metadata.
-4. If feed content is weak, fetch the article page and extract better `content_text` and `excerpt`.
-5. Skip existing articles by normalized `canonical_url`.
-6. Update older rows if a later run finds better content for the same article.
+3. Normalize article URL, text, image, and published date.
+4. If feed content is weak, fetch the article page and extract stronger content.
+5. Insert new articles by unique `canonical_url`.
+6. Update older rows if a later run finds better excerpt/content/image data.
 7. Record run stats in `ingestion_runs`.
-
-The cron endpoint lives at [src/app/api/cron/ingest/route.ts](/Users/shaoxuan/Documents/nolan-innovation/content-os/src/app/api/cron/ingest/route.ts) and is protected by `CRON_SECRET`.
 
 ## Scheduled Runs
 
 [vercel.json](/Users/shaoxuan/Documents/nolan-innovation/content-os/vercel.json) schedules ingestion at:
 
-- `0 21 * * *` UTC
+```txt
+0 21 * * *
+```
 
-That corresponds to `5:30 AM` in Malaysia time.
+That is 5:00 AM Malaysia time.
 
 ## Data Model
+
+The fresh baseline migration lives at:
+
+[20260412120000_fresh_public_feed_schema.sql](/Users/shaoxuan/Documents/nolan-innovation/content-os/supabase/migrations/20260412120000_fresh_public_feed_schema.sql)
 
 Main tables:
 
@@ -100,19 +86,4 @@ Main tables:
 - `articles`
 - `ingestion_runs`
 
-Key article fields:
-
-- `title`: headline
-- `content_text`: fuller article text when available
-- `excerpt`: shorter preview summary
-- `canonical_url`: dedupe key
-- `review_action`: `favorite | used | ignored | null`
-
-## Authentication
-
-Protected routes require a valid Supabase-authenticated user session. Unauthenticated users are redirected to `/login`.
-
-## Notes
-
-- The UI is intentionally optimized for article triage, not publishing workflow automation.
-- No AI API key is required for ingestion. Content enrichment is currently deterministic page fetching plus HTML parsing.
+The migration is destructive by design. It drops and recreates the app-owned `public` schema objects so a fresh database starts with only the tables, types, indexes, triggers, and seed sources this app currently needs.
