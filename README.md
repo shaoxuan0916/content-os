@@ -30,7 +30,7 @@ Public tech-news feed built with Next.js, Bun, and Supabase.
 
 See [.env.example](/Users/shaoxuan/Documents/nolan-innovation/content-os/.env.example).
 
-- `SUPABASE_URL`: Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_URL`: Supabase project URL
 - `SUPABASE_SERVICE_ROLE_KEY`: server-side key used by API routes and ingestion
 - `CRON_SECRET`: shared bearer secret for `/api/cron/ingest`
 
